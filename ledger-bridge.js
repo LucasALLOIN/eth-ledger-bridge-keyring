@@ -29,6 +29,9 @@ export default class LedgerBridge {
                     case 'ledger-unlock':
                         this.unlock(replyAction, params.hdPath, messageId)
                         break
+                    case 'ledger-get-public-encryption-key-eip1024':
+                        this.getEncryptionPublicKey(replyAction, params.hdPath, messageId)
+                        break
                     case 'ledger-sign-transaction':
                         this.signTransaction(replyAction, params.hdPath, params.tx, messageId)
                         break
@@ -163,6 +166,31 @@ export default class LedgerBridge {
         try {
             await this.makeApp()
             const res = await this.app.getAddress(hdPath, false, true)
+            this.sendMessageToExtension({
+                action: replyAction,
+                success: true,
+                payload: res,
+                messageId,
+            })
+        } catch (err) {
+            const e = this.ledgerErrToMessage(err)
+            this.sendMessageToExtension({
+                action: replyAction,
+                success: false,
+                payload: { error: e },
+                messageId,
+            })
+        } finally {
+            if (this.transportType !== 'ledgerLive') {
+                this.cleanUp()
+            }
+        }
+    }
+
+    async getEncryptionPublicKey (replyAction, hdPath, messageId) {
+        try {
+            await this.makeApp()
+            const res = await this.app.getEIP1024PublicEncryptionKey(hdPath, true)
             this.sendMessageToExtension({
                 action: replyAction,
                 success: true,
