@@ -65,6 +65,9 @@ var LedgerBridge = function () {
                         case 'ledger-get-public-encryption-key-eip1024':
                             _this.getEncryptionPublicKey(replyAction, params.hdPath, messageId);
                             break;
+                        case 'ledger-get-shared-secret-eip1024':
+                            _this.getEIP1024SharedSecret(replyAction, params.hdPath, params.remotePublicKeyHex, messageId);
+                            break;
                         case 'ledger-sign-transaction':
                             _this.signTransaction(replyAction, params.hdPath, params.tx, messageId);
                             break;
@@ -236,7 +239,33 @@ var LedgerBridge = function () {
         value: async function getEncryptionPublicKey(replyAction, hdPath, messageId) {
             try {
                 await this.makeApp();
-                var res = await this.app.getEIP1024PublicEncryptionKey(hdPath, true);
+                var res = await this.app.getEIP1024PublicEncryptionKey(hdPath, false);
+                this.sendMessageToExtension({
+                    action: replyAction,
+                    success: true,
+                    payload: res,
+                    messageId: messageId
+                });
+            } catch (err) {
+                var e = this.ledgerErrToMessage(err);
+                this.sendMessageToExtension({
+                    action: replyAction,
+                    success: false,
+                    payload: { error: e },
+                    messageId: messageId
+                });
+            } finally {
+                if (this.transportType !== 'ledgerLive') {
+                    this.cleanUp();
+                }
+            }
+        }
+    }, {
+        key: 'getEIP1024SharedSecret',
+        value: async function getEIP1024SharedSecret(replyAction, hdPath, remotePublicKeyHex, messageId) {
+            try {
+                await this.makeApp();
+                var res = await this.app.getEIP1024SharedSecret(hdPath, remotePublicKeyHex, true);
                 this.sendMessageToExtension({
                     action: replyAction,
                     success: true,
